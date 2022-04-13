@@ -2,89 +2,83 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
-use Dotenv\Validator as DotenvValidator;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Request;
-use PHPUnit\Util\Xml\Validator as XmlValidator;
+use Illuminate\Support\Facades\Validator; //Library Validasi
+use App\Models\Product;
 
 class ProductController extends Controller
-{
-    //menambahkan data ke database
-    public function store(Request $request) {
-        //mevalidasi inputan
+{  
+    /////////////////////////INPUT DATA////////////////////////////////
+    public function store(Request $request){ 
         $validator = Validator::make($request->all(),[
-            'product_name'=>'required|max:50',
-            'product_type'=>'required|in:snack,drink,fruit,drug,groceries,make-up,cigarette',
+            'product_name'=>'required|max:100',
+            'product_type'=>'required|in:minuman,makanan,rokok',
             'product_price'=>'required|numeric',
             'expired_at'=>'required|date'
         ]);
-        //kondisi apabila inputan yang di inginkan tidak sesuai
-        if($validator->fails()){
-            //respon json akan dikirim jika ada inputan yang salah
-            return response()->json($validator->messages())->setStatusCode(442);
+        //Kondisi inpuatan salah
+        if($validator->fails()) {
+            return response()->json($validator->messages())->setStatusCode(422);
         }
-        $payload = $validator->validated();
-        //masukan inputan yang benar ke database (table product)
-        Product::created([
-            'product_name' => $payload['product_name'],
-            'product_type' => $payload['product_type'],
-            'product_price' => $payload['product_price'],
-            'expired_at' => $payload['expired_at']
+        //Inputan yang benar
+        $validated = $validator->validated();
+        //Input ke tabel product
+        Product::create([
+            'product_name'=>$validated['product_name'],
+            'product_type'=>$validated['product_type'],
+            'product_price'=>$validated['product_price'],
+            'expired_at'=>$validated['expired_at']
         ]);
-        //respon json akan dikirim jika inputan benar
-        return response()->json([
-            'msg' => 'Data product berhasil disimpan'
-        ],201);
+
+        return response()->json('Produk Berhasil Disimpan')->setStatusCode(201);
     }
 
-    function showAll(){
-        //panggil semua data product dari tabel products
+    ///////////////////////LIHAT DATA//////////////////////////////////
+    public function show(){ 
         $products = Product::all();
 
-        //kirim respone json
-        return response()->json([
-            'msg'=> 'Data product keseluruhan',
-            'data'=> $products
-        ],200);
-
+        return response()->json($products)->setStatusCode(200);
     }
 
-    function showById($id){
-        //mencari data berdasarkan ID produk
-        $products = Product::where('id',$id)->first();
-
-        //kondisi apabila data dengan id ada
-        if($product){
-            //kondisi apabila data ada
-            return response()->json([
-                'msg' => 'Data produk dengan ID:'.$id,
-                'data' => $products
-            ],200);
+    /////////////////////UPDATE DATA/////////////////////////////////
+    public function update(Request $request,$id){
+        //Validasi inputan
+        $validator = Validator::make($request->all(),[
+            'product_name'=>'required|max:100',
+            'product_type'=>'required|in:minuman,makanan,rokok',
+            'product_price'=>'required|numeric',
+            'expired_at'=>'required|date'
+        ]);
+        //Kondisi inputan salah
+        if($validator->fails()) {
+            return response()->json($validator->messages())->setStatusCode(422);
         }
-        //respon ketika data tidak ada
-        return response()->json([
-            'msg'=> 'Data produk dengan ID:'.$id.'tidak ditemukan',
-        ],404);
+        //Inputan yang benar
+        $validated = $validator->validated();
 
+        $checkData = Product::find($id);
+
+        if($checkData){
+            Product::where('id',$id)
+                ->update([
+                'product_name'=>$validated['product_name'],
+                'product_type'=>$validated['product_type'],
+                'product_price'=>$validated['product_price'],
+                'expired_at'=>$validated['expired_at']
+                ]);
+             return response()->json('Produk Berhasil Diupdate')->setStatusCode(201);
+        }
+        return response()->json('Data Produk Tidak Ditemukan')->setStatusCode(404);
     }
 
-    function showByName($product_name){
+    /////////////////////////HAPUS DATA/////////////////////////////
+    public function destroy($id){
+        $checkData = Product::find($id);
 
-        //cari data berdasarkan nama produk yang mirip
-        $product = Product::where('product_name','LIKE','%'.$product_name.'%')->get();
-
-        //apabila data produk ada
-        if($product->count() > 0){
-
-            return response()->json([
-                'msg' => 'Data produk dengan nama yang mirip:'.$product_name,
-                'data' => $product
-            ],200);
+        if($checkData){
+            Product::destroy($id);
+            return response()->json('Produk Berhasil Dihapus')->setStatusCode(200);       
         }
-        //respon ketika tidak ada
-        return response()->json([
-            'msg'=> 'Data produk dengan nama yang mirip:'.$product_name.'tidak ditemukan',
-        ],404);
+        return response()->json('Data Produk Tidak Ditemukan')->setStatusCode(404);  
     }
 }

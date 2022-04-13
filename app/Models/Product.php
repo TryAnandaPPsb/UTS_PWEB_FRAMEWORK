@@ -9,6 +9,9 @@ class Product extends Model
 {
     use HasFactory;
 
-    //set kolom apa saja yang bisa di lakukan insest secara langsung
+    //Mendefinisikan tabel
+    protected $table = 'products';
+
+    //Apa saja yang akan diinput user
     protected $fillable = ['product_name','product_type','product_price','expired_at'];
 }
